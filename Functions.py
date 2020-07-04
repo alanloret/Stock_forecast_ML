@@ -53,7 +53,7 @@ def collect_data(start, end, *shares, **kwargs):
         kwargs -> you can input * 'depths' for different depths for moving average and rsi features """
 
     stocks = {}
-    depths = kwargs.get('depths', [14, 18, 30])
+    depths = kwargs.get('depths', [14, 18, 20, 30])
 
     for share in shares:
         df_share = my_data(start, end, share, 2 * max(depths) + 1)
@@ -242,8 +242,7 @@ def k_nearest_neighbors(start, end, *shares, **kwargs):
         X_test, y_test = df.loc[:, df.columns != 'target'], df.target
 
         # Scale our data
-        mean = y_train.mean()
-        std = y_train.std()
+        mean, std = y_train.mean(), y_train.std()
         y_train_scaled = (y_train - mean) / std
 
         # Modify our data to apply k nearest neighbors : the target can not be a float
@@ -282,7 +281,7 @@ def neural_data(start, end, *shares, **kwargs):
 
     for share in shares:
         df_share = my_data(start, end, share, 2 * (memory + 1))  # we go further and will return only the predictions
-                                                                 # what we asked for
+                                                                 # we asked for
         df_share = df_share.sort_index()
         data = df_share.copy()
 
@@ -304,13 +303,17 @@ def neural_network(start, end, *shares, **kwargs):
         shares -> strings made of shares name
         kwargs -> you can input * 'memory' to select the number of days in the LSTM
                                 * 'training_share' to select the share you want to train with
-                                * 'training_start' to select the start date of the training """
+                                * 'training_start' to select the start date of the training
+                                * 'epochs' to select the epochs of the model
+                                * 'batch_size' to select the batch_size of the model """
 
     predictions = {}
 
     features = ['target']
     memory = kwargs.get('memory', 60)
     training_start = kwargs.get('training_start', (2000, 1, 1))
+    epochs = kwargs.get('epochs', 100)
+    batch_size = kwargs.get('batch_size', 32)
 
     for stock, df_stock in neural_data(start, end, *shares, **kwargs).items():
         training_share = kwargs.get('training_share', stock)
@@ -345,7 +348,7 @@ def neural_network(start, end, *shares, **kwargs):
 
         # Compile and optimize
         model.compile(optimizer='adam', loss='mse')
-        model.fit(X_train, y_train, epochs=100, batch_size=32, verbose=2, shuffle=False)
+        model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, verbose=2, shuffle=False)
 
         # Test data
         df = df_stock[features].copy()
